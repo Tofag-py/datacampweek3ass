@@ -1,0 +1,57 @@
+-- Creating external table referring to gcs path
+CREATE OR REPLACE EXTERNAL TABLE `dtc-de-project-376110.week3_dataset.fhv_external_tripdata`
+OPTIONS (
+  format = 'CSV',
+  uris = ['gs://prefect_to_web_bucket/week3/fhv_tripdata_2019-*.csv.gz']
+);
+
+-- Create a non partitioned table from external table
+CREATE OR REPLACE TABLE dtc-de-project-376110.week3_dataset.fhv_external_tripdata_non_partitoned AS
+SELECT * FROM dtc-de-project-376110.week3_dataset.fhv_external_tripdata;
+
+-- Create a partitioned table from external table
+CREATE OR REPLACE TABLE dtc-de-project-376110.week3_dataset.fhv_external_tripdata_partitoned
+PARTITION BY
+  DATE(pickup_datetime) AS
+SELECT * FROM dtc-de-project-376110.week3_dataset.fhv_external_tripdata;
+
+--Question 2
+-- Query to count distinct
+SELECT COUNT(DISTINCT affiliated_base_number)
+FROM (
+  SELECT affiliated_base_number
+  FROM dtc-de-project-376110.week3_dataset.fhv_external_tripdata
+  UNION ALL
+  SELECT affiliated_base_number
+  FROM dtc-de-project-376110.week3_dataset.fhv_external_tripdata_non_partitoned
+)
+
+-- Question 3
+-- Query to count the no of records with blank (null) PUlocationID and DOlocationID in the entire dataset
+
+SELECT count(*) 
+FROM dtc-de-project-376110.week3_dataset.fhv_external_tripdata
+WHERE PUlocationID IS NULL
+  AND DOlocationID IS NULL
+
+
+-- No 4
+-- Partition by Date, Cluster by affiliated_base_number
+
+-- No 5 Query
+CREATE OR REPLACE TABLE dtc-de-project-376110.week3_dataset.fhv_external_tripdata_partitoned_clustered
+PARTITION BY DATE(pickup_datetime)
+CLUSTER BY affiliated_base_number AS
+  SELECT * FROM dtc-de-project-376110.week3_dataset;
+
+CREATE OR REPLACE TABLE dtc-de-project-376110.week3_dataset.fhv_external_tripdata_partitioned_clustered (
+  vendor_id INT64,
+  tpep_pickup_datetime TIMESTAMP,
+  affiliated_base_number INT64,
+)
+PARTITION BY DATE(pickup_datetime)
+CLUSTER BY affiliated_base_number
+AS
+  SELECT * 
+  FROM 
+    dtc-de-project-376110.week3_dataset.fhv_tripdata_non_partitioned;
